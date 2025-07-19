@@ -1,0 +1,91 @@
+--- a/web/js/subfolder_ui.js
++++ b/web/js/subfolder_ui.js
+@@ -35,32 +35,46 @@ app.registerExtension({
+         const originalImageOptions = [...imageWidget.options.values];
+         
+         // Function to filter images based on selected subfolder
+         const filterImages = (selectedSubfolder) => {
+             let filteredImages;
++            let displayNames;
+             
+             if (!selectedSubfolder || selectedSubfolder === "") {
+                 // Show only root images (no / in filename)
+                 filteredImages = originalImageOptions.filter(img => !img.includes('/'));
++                displayNames = filteredImages;
+             } else {
+                 // Show only images from selected subfolder
+                 const prefix = selectedSubfolder + "/";
+                 filteredImages = originalImageOptions
+-                    .filter(img => img.startsWith(prefix))
+-                    .map(img => img.substring(prefix.length)); // Remove prefix for display
++                    .filter(img => img.startsWith(prefix));
++                displayNames = filteredImages
++                    .map(img => img.substring(prefix.length)); // Remove prefix for display only
+             }
+             
+             // Update image widget options
+-            imageWidget.options.values = filteredImages;
++            imageWidget.options.values = displayNames;
+             
+-            // Update widget value if current selection is no longer valid
+-            if (filteredImages.length > 0 && !filteredImages.includes(imageWidget.value)) {
+-                imageWidget.value = filteredImages[0];
+-                imageWidget.callback?.(filteredImages[0]);
++            // Check if current value is still valid
++            let currentValueValid = false;
++            if (selectedSubfolder && imageWidget.value && !imageWidget.value.includes('/')) {
++                // If we have a plain filename, check if it exists in the display names
++                currentValueValid = displayNames.includes(imageWidget.value);
++            } else if (!selectedSubfolder && imageWidget.value && !imageWidget.value.includes('/')) {
++                // Root folder - check if current value exists in root
++                currentValueValid = displayNames.includes(imageWidget.value);
++            }
++            
++            // Update widget value if current selection is no longer valid
++            if (!currentValueValid && displayNames.length > 0) {
++                imageWidget.value = displayNames[0];
++                imageWidget.callback?.(displayNames[0]);
+             }
+             
+             // Force widget UI update
+             if (imageWidget.element) {
+                 // Clear existing options
+                 imageWidget.element.innerHTML = "";
+                 
+                 // Add new options
+-                filteredImages.forEach(img => {
++                displayNames.forEach((img, index) => {
+                     const option = document.createElement("option");
+                     option.value = img;
+                     option.textContent = img;
+@@ -68,6 +82,9 @@ app.registerExtension({
+                 });
+                 
+                 imageWidget.element.value = imageWidget.value;
+             }
++            
++            // Trigger graph change to update the node
++            node.graph?.change();
+         };
+         
+         // Set up subfolder change handler
+@@ -138,8 +155,20 @@ app.registerExtension({
+                         content: "Open in new tab",
+                         callback: () => {
+                             const subfolder = node.widgets.find(w => w.name === "subfolder")?.value || "";
+                             const filename = widget.value;
+-                            const url = `/view?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder)}`;
++                            
++                            // Construct the correct URL based on whether we're in a subfolder
++                            let url;
++                            if (subfolder) {
++                                // For subfolder images, we need to pass just the filename
++                                url = `/view?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder)}`;
++                            } else {
++                                // For root images, pass the filename as is
++                                url = `/view?filename=${encodeURIComponent(filename)}`;
++                            }
++                            
+                             window.open(url, '_blank');
+                         }
+                     },
