@@ -1,0 +1,24 @@
+[project]
+name = "comfyui-subfolderimageloader"
+version = "1.0.0"
+description = "A ComfyUI custom node that enhances image loading with subfolder organization and dynamic filtering"
+authors = [
+    {name = "rdomunky", email = "rdo@munky.net"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch",
+    "pillow",
+    "numpy"
+]
+
+[project.urls]
+Homepage = "https://github.com/rdomunky/comfyui-subfolderimageloader"
+Repository = "https://github.com/rdomunky/comfyui-subfolderimageloader"
+Issues = "https://github.com/rdomunky/comfyui-subfolderimageloader/issues"
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
