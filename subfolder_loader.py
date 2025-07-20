@@ -85,6 +85,7 @@ class SubfolderImageLoader:
                 }),
                 "image": (default_images if default_images else [""], {
                     "default": default_images[0] if default_images else "",
+                    "image_upload": True,
                     "tooltip": "Choose an image from the selected subfolder. This list is filtered based on your subfolder selection."
                 }),
             },
@@ -106,9 +107,9 @@ class SubfolderImageLoader:
             # Root folder - show only images without subfolder (no slash)
             return [img for img in all_images if '/' not in img]
         else:
-            # Specific subfolder - show only images from that subfolder, without prefix
+            # Specific subfolder - show images WITH subfolder prefix for ComfyUI compatibility
             prefix = subfolder + "/"
-            filtered = [img[len(prefix):] for img in all_images 
+            filtered = [img for img in all_images 
                        if img.startswith(prefix) and '/' not in img[len(prefix):]]
             return filtered
     
@@ -264,34 +265,20 @@ class SubfolderImageLoader:
             
             input_dir = folder_paths.get_input_directory()
             
-            # Handle the case where image might contain subfolder prefix
-            clean_image = image
-            actual_subfolder = subfolder
+            # The image parameter now contains the full path (subfolder/filename) when applicable
+            # Use it directly as the image identifier for ComfyUI
+            image_identifier = image
             
-            # If image contains a path separator, extract the subfolder and filename
+            # Extract clean filename for return value
             if '/' in image:
                 parts = image.split('/')
-                if len(parts) == 2:
-                    potential_subfolder, clean_image = parts
-                    # Use the subfolder from the image path if no subfolder is explicitly set
-                    if not actual_subfolder:
-                        actual_subfolder = potential_subfolder
-            
-            # Build the full path
-            if actual_subfolder:
-                file_path = os.path.join(input_dir, actual_subfolder, clean_image)
+                clean_image = parts[-1]  # Get the filename part
             else:
-                file_path = os.path.join(input_dir, clean_image)
+                clean_image = image
             
-            # Validate path is safe
-            file_path_abs = os.path.abspath(file_path)
-            input_dir_abs = os.path.abspath(input_dir)
-            if not file_path_abs.startswith(input_dir_abs):
-                raise ValueError("Invalid file path: outside input directory")
-            
-            # Check file exists
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"Image file not found: {file_path}")
+            # Use ComfyUI's standard method to get the full file path
+            # This handles the path resolution and validation automatically
+            file_path = folder_paths.get_annotated_filepath(image_identifier)
             
             # Load and process image
             image_tensor, mask_tensor = self.process_image(file_path, load_mask)
